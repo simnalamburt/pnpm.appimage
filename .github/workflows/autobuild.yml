@@ -59,7 +59,7 @@ jobs:
       - name: Build
         run: |
           sudo apt-get install fuse -y --no-install-recommends
-          ./build '${{ needs.prepare.outputs.remote }}'
+          ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'
       - name: Set filename
         id: filename
         run: echo "::set-output name=value::pnpm-${{ matrix.arch }}.AppImage"
