@@ -44,52 +44,19 @@ if [[ "$ARCH" != 'x86_64' && "$ARCH" != 'aarch64' ]]; then
 fi
 
 # Reference: https://docs.appimage.org/packaging-guide/manual.html
-mkdir -p pnpm.AppDir/usr/{lib,bin}
+cp -R AppDir pnpm.AppDir
 
 # Download AppImageKit
-curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-$(uname -m).AppImage" -o appimagetool
+mkdir tmp
+curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-$(uname -m).AppImage" -o tmp/appimagetool
 curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/AppRun-${ARCH}" -o pnpm.AppDir/AppRun
-curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/runtime-${ARCH}" -o runtime
-chmod +x appimagetool pnpm.AppDir/AppRun
+curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/runtime-${ARCH}" -o tmp/runtime
+chmod +x tmp/appimagetool pnpm.AppDir/AppRun
 
 # Download and extract pnpm
-curl "https://registry.npmjs.org/pnpm/-/pnpm-${VERSION}.tgz" -o pnpm.tar.gz
-tar -zxvf pnpm.tar.gz
-mv package pnpm.AppDir/usr/lib/pnpm
-cat <<'EOF' > pnpm.AppDir/usr/bin/pnpm
-#!/bin/bash
-set -euo pipefail; IFS=$'\n\t'
-
-DIR=$(readlink -e lib/pnpm/bin)
-cd "${OWD}"
-if [[ "$(basename "${ARGV0}")" == "pnpx" ]]; then
-  exec "${DIR}/pnpx.cjs"
-else
-  exec "${DIR}/pnpm.cjs"
-fi
-EOF
-chmod +x pnpm.AppDir/usr/bin/pnpm
-
-# Reference: https://wiki.archlinux.org/index.php/desktop_entries
-cat <<'EOF' > pnpm.AppDir/pnpm.desktop
-[Desktop Entry]
-Name=pnpm
-Exec=pnpm
-Icon=pnpm
-Type=Application
-Categories=Utility;ConsoleOnly;
-Terminal=true
-EOF
-
-# Logo
-cat <<'EOF' > pnpm.AppDir/pnpm.svg
-<svg viewBox="76.5898724 44 164.0077551 164" xmlns="http://www.w3.org/2000/svg">
-<g fill="#f9ad00"><path d="m237.6 95h-50v-50h50z"/><path d="m182.59
-95h-50v-50h50z"/><path d="m127.59 95h-50v-50h50z"/><path d="m237.6
-150h-50v-50h50z"/></g><path d="m182.59 150h-50v-50h50z" fill="#4e4e4e"/><path
-d="m182.59 205h-50v-50h50z" fill="#4e4e4e"/><path d="m237.6 205h-50v-50h50z"
-fill="#4e4e4e"/><path d="m127.59 205h-50v-50h50z" fill="#4e4e4e"/></svg>
-EOF
+mkdir -p pnpm.AppDir/usr/lib/pnpm
+curl "https://registry.npmjs.org/pnpm/-/pnpm-${VERSION}.tgz" |
+  tar -zxC pnpm.AppDir/usr/lib/pnpm --strip-components=1
 
 # Package
-./appimagetool -n pnpm.AppDir --runtime-file ./runtime
+tmp/appimagetool -n pnpm.AppDir --runtime-file tmp/runtime

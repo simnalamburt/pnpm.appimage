@@ -1,9 +1,6 @@
 # Build artifacts
 /pnpm.AppDir/
-/pnpm.tar.gz
-/pnpm/
-/appimagetool
-/runtime
+/tmp/
 
 # Build result
 /pnpm-*.AppImage
