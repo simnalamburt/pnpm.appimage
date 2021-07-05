@@ -62,7 +62,7 @@ jobs:
           ./build '${{ needs.prepare.outputs.remote }}'
       - name: Set filename
         id: filename
-        run: echo "::set-output name=value::aws-${{ matrix.arch }}.AppImage"
+        run: echo "::set-output name=value::pnpm-${{ matrix.arch }}.AppImage"
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
