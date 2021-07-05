@@ -1,8 +1,9 @@
 # Build artifacts
-/aws.AppDir/
+/pnpm.AppDir/
+/pnpm.tar.gz
+/pnpm/
 /appimagetool
-/aws.zip
-/aws/
+/runtime
 
 # Build result
-/aws-*.AppImage
+/pnpm-*.AppImage

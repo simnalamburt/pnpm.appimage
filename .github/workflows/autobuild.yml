@@ -17,8 +17,8 @@ jobs:
         id: latest_remote_tag
         run: |
           echo ::set-output name=ver::$( \
-            curl -sL https://api.github.com/repos/aws/aws-cli/git/refs/tags | \
-            jq --raw-output '.[-1].ref' | \
+            curl -sL registry.npmjs.org/pnpm/latest | \
+            jq --raw-output '.version' | \
             grep -Eo '[0-9]+.[0-9]+.[0-9]+' \
           )
       - name: Check local release
@@ -30,9 +30,7 @@ jobs:
             grep -Eo '[0-9]+.[0-9]+.[0-9]+' \
           )
       - name: Publish new release
-        if: |
-          (steps.latest_remote_tag.outputs.ver != steps.latest_local_release.outputs.ver) &&
-          startsWith(steps.latest_remote_tag.outputs.ver, '2.')
+        if: steps.latest_remote_tag.outputs.ver != steps.latest_local_release.outputs.ver
         id: new_release
         uses: actions/create-release@v1
         env:
@@ -55,15 +53,13 @@ jobs:
       fail-fast: false
       matrix:
         arch: ['x86_64', 'aarch64']
-    if: |
-      (needs.prepare.outputs.remote != needs.prepare.outputs.local) &&
-      startsWith(needs.prepare.outputs.remote, '2.')
+    if: needs.prepare.outputs.remote != needs.prepare.outputs.local
     steps:
       - uses: actions/checkout@v2
       - name: Build
         run: |
           sudo apt-get install fuse -y --no-install-recommends
-          ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'
+          ./build '${{ needs.prepare.outputs.remote }}'
       - name: Set filename
         id: filename
         run: echo "::set-output name=value::aws-${{ matrix.arch }}.AppImage"
