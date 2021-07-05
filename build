@@ -7,7 +7,7 @@ build
 Scripts which packages pnpm into an AppImage binary.
 
 Usage:
-  ./build <version> <arch>
+  ./build <version> [<arch>]
   ./build [-h|--help]
 
   <version>     Version of pnpm
@@ -17,6 +17,7 @@ Usage:
 Example:
   ./build 6.9.1 x86_64
   ./build 6.10.0 aarch64
+  ./build 6.9.0
   ./build -h
   ./build --help
 EOF
