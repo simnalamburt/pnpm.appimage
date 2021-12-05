@@ -9,8 +9,8 @@ jobs:
   prepare:
     runs-on: ubuntu-20.04
     outputs:
-      remote: ${{ steps.latest_remote_tag.outputs.ver }}
-      local: ${{ steps.latest_local_release.outputs.ver }}
+      version: ${{ steps.latest_remote_tag.outputs.ver }}
+      exists: ${{ steps.check.outputs.exists }}
       upload_url: ${{ steps.new_release.outputs.upload_url }}
     steps:
       - name: Get latest tag
@@ -21,16 +21,15 @@ jobs:
             jq --raw-output '.version' |
             grep -Eo '[0-9]+.[0-9]+.[0-9]+')
           echo "::set-output name=ver::${VERSION}"
-      - name: Check local release
-        id: latest_local_release
-        run: |
-          VERSION=$(
-            curl -sL 'https://api.github.com/repos/${{ github.repository }}/releases/latest' |
-            jq --raw-output '.tag_name' |
-            grep -Eo '[0-9]+.[0-9]+.[0-9]+')
-          echo "::set-output name=ver::${VERSION}"
+      - name: Check if the tag already exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: check
+        with:
+          tag: v${{ steps.latest_remote_tag.outputs.ver }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish new release
-        if: steps.latest_remote_tag.outputs.ver != steps.latest_local_release.outputs.ver
+        if: steps.check.outputs.exists == 'false'
         id: new_release
         uses: actions/create-release@v1
         env:
@@ -53,13 +52,13 @@ jobs:
       fail-fast: false
       matrix:
         arch: ['x86_64', 'aarch64']
-    if: needs.prepare.outputs.remote != needs.prepare.outputs.local
+    if: needs.prepare.outputs.exists == 'false'
     steps:
       - uses: actions/checkout@v2
       - name: Build
         run: |
           sudo apt-get install fuse -y --no-install-recommends
-          ./build '${{ needs.prepare.outputs.remote }}' '${{ matrix.arch }}'
+          ./build '${{ needs.prepare.outputs.version }}' '${{ matrix.arch }}'
       - name: Set filename
         id: filename
         run: echo '::set-output name=value::pnpm-${{ matrix.arch }}.AppImage'
