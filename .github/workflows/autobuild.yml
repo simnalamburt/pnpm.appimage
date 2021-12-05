@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       version: ${{ steps.latest_remote_tag.outputs.ver }}
-      exists: ${{ steps.check.outputs.exists }}
+      need_build: ${{ steps.check.outputs.exists == 'false' }}
       upload_url: ${{ steps.new_release.outputs.upload_url }}
     steps:
       - name: Get latest tag
@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: ['x86_64', 'aarch64']
-    if: needs.prepare.outputs.exists == 'false'
+    if: needs.prepare.outputs.need_build == 'true'
     steps:
       - uses: actions/checkout@v2
       - name: Build
