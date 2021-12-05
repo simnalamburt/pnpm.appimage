@@ -9,12 +9,12 @@ jobs:
   prepare:
     runs-on: ubuntu-20.04
     outputs:
-      version: ${{ steps.latest_remote_tag.outputs.ver }}
+      version: ${{ steps.latest.outputs.ver }}
       need_build: ${{ steps.check.outputs.exists == 'false' }}
       upload_url: ${{ steps.new_release.outputs.upload_url }}
     steps:
       - name: Get latest tag
-        id: latest_remote_tag
+        id: latest
         run: |
           VERSION=$(
             curl -sL 'https://registry.npmjs.org/pnpm/latest' |
@@ -25,7 +25,7 @@ jobs:
         uses: mukunku/tag-exists-action@v1.0.0
         id: check
         with:
-          tag: v${{ steps.latest_remote_tag.outputs.ver }}
+          tag: v${{ steps.latest.outputs.ver }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish new release
@@ -35,8 +35,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.latest_remote_tag.outputs.ver }}
-          release_name: v${{ steps.latest_remote_tag.outputs.ver }}
+          tag_name: v${{ steps.latest.outputs.ver }}
+          release_name: v${{ steps.latest.outputs.ver }}
           body: |
             This build is automated via GitHub Actions.
             If you find any errors, please open an issue and let me know.
