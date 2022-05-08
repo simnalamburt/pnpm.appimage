@@ -4,7 +4,7 @@ set -euo pipefail; IFS=$'\n\t'
 DIR=$(readlink -e lib/pnpm/bin)
 cd "${OWD}"
 if [[ "$(basename "${ARGV0}")" == "pnpx" ]]; then
-  exec "${DIR}/pnpx.cjs"
+  exec "${DIR}/pnpx.cjs" "$@"
 else
-  exec "${DIR}/pnpm.cjs"
+  exec "${DIR}/pnpm.cjs" "$@"
 fi
