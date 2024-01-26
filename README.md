@@ -4,7 +4,7 @@ pnpm, in a single file
 
 ```console
 $ ./pnpm --help
-Usage: pnpm [command] [flags]                   
+Usage: pnpm [command] [flags]
        pnpm [ -h | --help | -v | --version ]
 ...
 ```
