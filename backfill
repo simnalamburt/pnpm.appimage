@@ -1,0 +1,45 @@
+#!/bin/bash
+set -euo pipefail; IFS=$'\n\t'
+
+run=false
+if [[ "${1:-}" == '--run' ]]; then
+  run=true
+elif (( $# != 0 )); then
+  echo 'Usage: ./backfill [--run]'
+  exit 1
+fi
+
+repo="${GH_REPO:-$(gh repo view --json nameWithOwner --jq '.nameWithOwner')}"
+default_branch="$(
+  gh repo view "$repo" --json defaultBranchRef --jq '.defaultBranchRef.name'
+)"
+missing="$(
+  gh api --paginate "repos/${repo}/releases?per_page=100" --jq '
+    .[] |
+    select(
+      ([.assets[].name] | index("pnpm-x86_64.AppImage")) == null or
+      ([.assets[].name] | index("pnpm-aarch64.AppImage")) == null
+    ) |
+    .tag_name
+  ' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true
+)"
+
+if [[ -z "$missing" ]]; then
+  echo 'Every release already has both AppImage assets.'
+  exit
+fi
+
+echo 'Releases missing one or more AppImage assets:'
+echo "$missing"
+
+if [[ "$run" != true ]]; then
+  echo
+  echo 'Dry run only. Use ./backfill --run to queue these builds.'
+  exit
+fi
+
+while IFS= read -r tag; do
+  gh workflow run watch.yml --repo "$repo" --ref "$default_branch" \
+    --field "version=${tag#v}"
+  echo "Queued ${tag}"
+done <<< "$missing"

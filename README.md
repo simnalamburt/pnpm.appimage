@@ -18,6 +18,17 @@ curl -L https://github.com/simnalamburt/pnpm.appimage/releases/latest/download/p
 chmod +x pnpm
 ```
 
+Maintaining releases
+--------
+The release workflow can rebuild a specific pnpm version from the GitHub
+Actions UI. To find releases that are missing either architecture and queue
+all of them after the workflow change is on the default branch:
+
+```bash
+./backfill       # list missing assets without changing anything
+./backfill --run # queue one workflow run per missing release
+```
+
 &nbsp;
 
 --------

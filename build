@@ -35,6 +35,7 @@ fi
 
 VERSION="${1}"
 ARCH="${2:-$(uname -m)}"
+HOST_ARCH="$(uname -m)"
 
 echo "pnpm, in a single file - ${VERSION} ${ARCH}"
 
@@ -43,20 +44,62 @@ if [[ "$ARCH" != 'x86_64' && "$ARCH" != 'aarch64' ]]; then
   exit 1
 fi
 
-# Reference: https://docs.appimage.org/packaging-guide/manual.html
-cp -R AppDir pnpm.AppDir
+if [[ "$(uname -s)" != 'Linux' ]]; then
+  echo 'Building an AppImage requires Linux.'
+  exit 1
+fi
 
-# Download AppImageKit
-mkdir tmp
-curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-$(uname -m).AppImage" -o tmp/appimagetool
-curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/AppRun-${ARCH}" -o pnpm.AppDir/AppRun
-curl -L "https://github.com/AppImage/AppImageKit/releases/download/13/runtime-${ARCH}" -o tmp/runtime
-chmod +x tmp/appimagetool pnpm.AppDir/AppRun
+case "$HOST_ARCH" in
+  x86_64)
+    APPIMAGETOOL_SHA256='ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0'
+    ;;
+  aarch64)
+    APPIMAGETOOL_SHA256='f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158'
+    ;;
+  *)
+    echo "Unsupported build host architecture: ${HOST_ARCH}"
+    exit 1
+    ;;
+esac
+
+case "$ARCH" in
+  x86_64)
+    RUNTIME_SHA256='2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d'
+    ;;
+  aarch64)
+    RUNTIME_SHA256='00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444'
+    ;;
+esac
+
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+
+# Reference: https://docs.appimage.org/packaging-guide/manual.html
+cp -R AppDir "$WORK_DIR/pnpm.AppDir"
+
+# Download pinned AppImage tooling. Fail on HTTP errors so an error page can
+# never be mistaken for an executable again.
+curl --fail --location --show-error --silent --retry 3 --retry-all-errors \
+  "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-${HOST_ARCH}.AppImage" \
+  --output "$WORK_DIR/appimagetool"
+curl --fail --location --show-error --silent --retry 3 --retry-all-errors \
+  "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-${ARCH}" \
+  --output "$WORK_DIR/runtime"
+echo "${APPIMAGETOOL_SHA256}  ${WORK_DIR}/appimagetool" | sha256sum --check --status
+echo "${RUNTIME_SHA256}  ${WORK_DIR}/runtime" | sha256sum --check --status
+chmod +x "$WORK_DIR/appimagetool"
 
 # Download and extract pnpm
-mkdir -p pnpm.AppDir/usr/lib/pnpm
-curl "https://registry.npmjs.org/pnpm/-/pnpm-${VERSION}.tgz" |
-  tar -zxC pnpm.AppDir/usr/lib/pnpm --strip-components=1
+mkdir -p "$WORK_DIR/pnpm.AppDir/usr/lib/pnpm"
+curl --fail --location --show-error --silent --retry 3 --retry-all-errors \
+  "https://registry.npmjs.org/pnpm/-/pnpm-${VERSION}.tgz" \
+  --output "$WORK_DIR/pnpm.tgz"
+tar -zxf "$WORK_DIR/pnpm.tgz" \
+  -C "$WORK_DIR/pnpm.AppDir/usr/lib/pnpm" --strip-components=1
 
 # Package
-tmp/appimagetool -n pnpm.AppDir --runtime-file tmp/runtime
+OUTPUT="${PWD}/pnpm-${ARCH}.AppImage"
+ARCH="$ARCH" VERSION="$VERSION" APPIMAGE_EXTRACT_AND_RUN=1 \
+  "$WORK_DIR/appimagetool" --no-appstream \
+  --runtime-file "$WORK_DIR/runtime" \
+  "$WORK_DIR/pnpm.AppDir" "$OUTPUT"

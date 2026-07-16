@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail; IFS=$'\n\t'
 
-DIR=$(readlink -e lib/pnpm/bin)
-cd "${OWD}"
-if [[ "$(basename "${ARGV0}")" == "pnpx" ]]; then
-  exec "${DIR}/pnpx.cjs" "$@"
+HERE="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+DIR="$(readlink -e "${HERE}/../lib/pnpm/bin")"
+if [[ "$(basename "${ARGV0:-${0}}")" == "pnpx" ]]; then
+  exec node "${DIR}/pnpx.cjs" "$@"
 else
-  exec "${DIR}/pnpm.cjs" "$@"
+  exec node "${DIR}/pnpm.cjs" "$@"
 fi
